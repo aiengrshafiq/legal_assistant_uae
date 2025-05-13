@@ -25,6 +25,12 @@ class Document:
         self.page_content = page_content
         self.metadata = metadata or {}
 
+
+def extract_keywords(text: str) -> str:
+    # Simple heuristic: return first 1–2 sentences as pseudo-query
+    sentences = text.strip().split(".")
+    return ". ".join(sentences[:2]).strip()
+    
 # === Language Detection ===
 def detect_language(text: str) -> str:
     arabic_chars = set("ابتثجحخدذرزسشصضطظعغفقكلمنهوي")
