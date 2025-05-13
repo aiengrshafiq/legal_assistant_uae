@@ -1,0 +1,69 @@
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #f8f9fa;
+}
+.header {
+    background-color: #08467D;
+    color: white;
+    padding: 1rem 2rem;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+.sidebar {
+    background-color: #08467D;
+    color: white;
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    padding-top: 1rem;
+}
+.sidebar a {
+    color: white;
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+}
+.sidebar a:hover {
+    background-color: #62B3FF;
+    color: #000;
+}
+.main-content {
+    margin-left: 250px;
+    padding: 100px 2rem 2rem;
+}
+.chat-box {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #C7C7C7;
+    padding: 1rem;
+    background: #fff;
+}
+.chat-input {
+    margin-top: 1rem;
+}
+.file-section {
+    margin-top: 2rem;
+}
+.file-history {
+    margin-top: 1rem;
+}
+.section-card {
+    border: 1px solid #C7C7C7;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    .main-content {
+        margin-left: 0;
+    }
+}

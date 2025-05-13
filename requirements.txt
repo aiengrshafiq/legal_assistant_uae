@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+jinja2
+openai
+python-multipart
+python-dotenv
+qdrant-client
+langchain
