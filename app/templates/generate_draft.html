@@ -1,0 +1,144 @@
+<!-- File: templates/generate_draft.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Legal Draft</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&family=Roboto&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/main.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0" style="font-family: 'Roboto', sans-serif;">UAE Legal Assistant</h5>
+        <nav>
+            <a href="/coming-soon" class="text-white me-3">Profile</a>
+            <a href="/coming-soon" class="text-white me-3">Folders</a>
+            <a href="/coming-soon" class="text-white me-3">History</a>
+            <a href="/coming-soon" class="text-white">Help</a>
+        </nav>
+    </div>
+
+     <!-- Sidebar -->
+     <div class="sidebar">
+        <a href="/">AI Assistant</a>
+        <a href="/generate-draft">Generate a Draft</a>
+        <a href="/coming-soon">Legal Research</a>
+        <a href="/coming-soon">Practical Guidance</a>
+        <a href="/coming-soon">Litigation Analysis</a>
+        <a href="/coming-soon">Documents Analysis</a>
+        <a href="/coming-soon">Legal News Hub</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="section-card">
+            <h5 class="mb-3">Generate Legal Draft</h5>
+
+            <label class="form-label">Upload Case PDF or Paste Description</label>
+            <input type="file" class="form-control" id="draftFile">
+            <div class="form-text mt-2">Or paste your legal case below:</div>
+            <textarea class="form-control mt-2" id="draftText" rows="5" placeholder="Enter your case description here..."></textarea>
+
+            <label class="form-label mt-3">Select Draft Type</label>
+            <select class="form-select" id="draftType">
+                <option value="">Select draft type</option>
+                <option value="Legal Notice">Legal Notice</option>
+                <option value="Court Complaint">Court Complaint</option>
+                <option value="Settlement Letter">Settlement Letter</option>
+                <option value="Employment Termination Letter">Employment Termination Letter</option>
+                <option value="Rental Dispute Complaint">Rental Dispute Complaint</option>
+                <option value="Power of Attorney">Power of Attorney</option>
+                <option value="Family Law Petition">Family Law Petition</option>
+                <option value="Custom">Custom</option>
+            </select>
+
+            <label class="form-label mt-3">Preferred Language</label>
+            <select class="form-select" id="draftLang">
+                <option value="English">English</option>
+                <option value="Arabic">Arabic</option>
+                <option value="Bilingual">Bilingual</option>
+            </select>
+
+            <label class="form-label mt-3">Recipient Details (optional)</label>
+            <input type="text" class="form-control" id="recipientName" placeholder="Full Name or Company">
+            <input type="text" class="form-control mt-2" id="recipientContact" placeholder="Email or Address">
+
+            <label class="form-label mt-3">Additional Instructions (optional)</label>
+            <textarea class="form-control" id="draftInstructions" rows="2"></textarea>
+
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" id="downloadAsPdf">
+                <label class="form-check-label" for="downloadAsPdf">Download as PDF</label>
+              </div>
+
+            <button class="btn btn-primary mt-3" onclick="submitDraftRequest()">Generate Draft</button>
+
+            <div id="draftResult" class="file-history mt-4 text-muted"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function submitDraftRequest() {
+            const file = document.querySelector("#draftFile").files[0];
+            const description = document.querySelector("#draftText").value.trim();
+            const draftType = document.querySelector("#draftType").value;
+            const draftLang = document.querySelector("#draftLang").value;
+            const recipientName = document.querySelector("#recipientName").value;
+            const recipientContact = document.querySelector("#recipientContact").value;
+            const instructions = document.querySelector("#draftInstructions").value;
+            const asPdf = document.querySelector("#downloadAsPdf").checked;
+
+            if (!file && !description) return alert("Please upload a file or enter case description");
+            if (!draftType || !draftLang) return alert("Draft type and language are required");
+
+            showLoading();
+            const formData = new FormData();
+            if (file) formData.append("file", file);
+            if (description) formData.append("description", description);
+            formData.append("draft_type", draftType);
+            formData.append("language", draftLang);
+            formData.append("recipient_name", recipientName);
+            formData.append("recipient_contact", recipientContact);
+            formData.append("instructions", instructions);
+            formData.append("as_pdf", asPdf);
+
+            try {
+                
+
+                const res = await fetch("/api/draft", { method: "POST", body: formData });
+                if (asPdf) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${draftType.replace(/\\s+/g, '_')}_draft.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                const data = await res.json();
+                document.querySelector("#draftResult").innerHTML =
+                    `<div class='border rounded p-3 bg-light'><pre>${data.draft}</pre></div>`;
+            }
+            } catch (err) {
+                alert("Failed to generate draft.");
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+    <!-- Global Loading Spinner -->
+    <div id="loadingSpinner" class="position-fixed top-50 start-50 translate-middle" style="z-index: 1050; display: none;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</body>
+</html>
