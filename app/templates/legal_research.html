@@ -1,0 +1,90 @@
+# File: app/templates/legal_research.html
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-4">Legal Research Assistant</h3>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label for="topic" class="form-label">Legal Topic</label>
+        <input type="text" class="form-control" name="topic" required value="{{ form_data.topic if form_data else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label for="jurisdiction" class="form-label">Jurisdiction</label>
+        <select class="form-select" name="jurisdiction" required>
+          <option value="">Select</option>
+          <option value="UAE" {% if form_data and form_data.jurisdiction == 'UAE' %}selected{% endif %}>UAE</option>
+          <option value="Dubai Courts" {% if form_data and form_data.jurisdiction == 'Dubai Courts' %}selected{% endif %}>Dubai Courts</option>
+          <option value="Abu Dhabi Judicial Dept." {% if form_data and form_data.jurisdiction == 'Abu Dhabi Judicial Dept.' %}selected{% endif %}>Abu Dhabi Judicial Dept.</option>
+          <option value="Federal" {% if form_data and form_data.jurisdiction == 'Federal' %}selected{% endif %}>Federal</option>
+        </select>
+      </div>
+    </div>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label for="domain" class="form-label">Legal Domain (Optional)</label>
+        <input type="text" class="form-control" name="domain" value="{{ form_data.domain if form_data else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label for="question" class="form-label">Legal Question (Optional)</label>
+        <input type="text" class="form-control" name="question" value="{{ form_data.question if form_data else '' }}">
+      </div>
+    </div>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label for="file" class="form-label">Upload Supporting Document (Optional)</label>
+        <input type="file" class="form-control" name="file" accept=".pdf">
+      </div>
+      <div class="col-md-6">
+        <label for="language" class="form-label">Language</label>
+        <select class="form-select" name="language">
+          <option value="en" {% if form_data and form_data.language == 'en' %}selected{% endif %}>English</option>
+          <option value="ar" {% if form_data and form_data.language == 'ar' %}selected{% endif %}>Arabic</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Initiate Research</button>
+  </form>
+  {% if summary %}
+  <h4>📘 Legal Research Report</h4>
+
+<div class="border rounded p-3 mb-4 bg-light">
+  <h5 class="text-primary">🔍 Summary</h5>
+  <p>{{ summary | replace('\\n', '<br>') | safe }}</p>
+</div>
+{% endif %}
+{% if articles %}
+<div class="border rounded p-3 mb-4">
+  <h5 class="text-success">📑 Applicable Legal Articles</h5>
+  <ul class="mb-0">
+    {% for article in articles %}
+    <li>{{ article }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if cases %}
+<div class="border rounded p-3 mb-4">
+  <h5 class="text-warning">⚖️ Related Court Rulings</h5>
+  <ul class="mb-0">
+    {% for case in cases %}
+    <li>{{ case }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if sources %}
+<div class="border rounded p-3 mb-4">
+  <h6 class="text-muted">🔗 Sources & References</h6>
+  <ul class="mb-0">
+    {% for src in sources %}
+    <li><a href="{{ src }}" target="_blank">{{ src }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}

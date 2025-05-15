@@ -4,7 +4,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.routes import query, draft, summarize, base
 
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import legal_research
+
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -13,6 +23,7 @@ app.include_router(query.router)
 app.include_router(draft.router)
 app.include_router(summarize.router)
 app.include_router(base.router)
+app.include_router(legal_research.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):

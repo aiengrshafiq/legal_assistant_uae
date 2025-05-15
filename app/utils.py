@@ -4,7 +4,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import SearchParams
 from openai import OpenAI
 from dotenv import load_dotenv
-
+import fitz
 load_dotenv()
 
 # === OpenAI & Qdrant Configuration ===
@@ -30,6 +30,19 @@ def extract_keywords(text: str) -> str:
     # Simple heuristic: return first 1–2 sentences as pseudo-query
     sentences = text.strip().split(".")
     return ". ".join(sentences[:2]).strip()
+
+    
+def extract_text(file_bytes: bytes) -> str:
+    """Extracts and returns text from a PDF byte stream."""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        full_text = ""
+        for page in doc:
+            full_text += page.get_text()
+        doc.close()
+        return full_text.strip()
+    except Exception as e:
+        return f"Error extracting text: {str(e)}"
     
 # === Language Detection ===
 def detect_language(text: str) -> str:
@@ -66,7 +79,7 @@ def direct_qdrant_search(query: str, lang: str = "en", k: int = 10) -> List[Docu
     for hit in search_result:
         payload = hit.payload or {}
         content = payload.get("page_content") or payload.get("text", "")
-        print(f"[QDRANT HIT] {payload.get('source')} | Preview: {content[:100]}")
+        #print(f"[QDRANT HIT] {payload.get('source')} | Preview: {content[:100]}")
         metadata = {
             "source": payload.get("source", "unknown"),
             "page": payload.get("page", "N/A"),

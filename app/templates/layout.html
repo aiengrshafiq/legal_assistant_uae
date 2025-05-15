@@ -35,28 +35,8 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <div class="section-card">
-            <h6>AI Assistant</h6>
-            <div class="chat-box" id="chatBox">
-                <div class="text-muted">Start asking your legal questions...</div>
-            </div>
-            <div class="chat-input input-group mt-2">
-                <input type="text" class="form-control" id="chatInput" placeholder="Type your legal question...">
-                <button class="btn btn-primary" onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-
-        <div class="row file-section">
-           
-            <div class="col-md-12">
-                <div class="section-card">
-                    <h6>Summarize a Case</h6>
-                    <input type="file" class="form-control" id="summaryFile">
-                    <button class="btn btn-primary mt-2" onclick="handleSummarize()">Summarize</button>
-                    <div class="file-history mt-3 text-muted" id="summaryResult">No recent summaries.</div>
-                </div>
-            </div>
-        </div>
+       
+        {% block content %}{% endblock %}
     </div>
 
     <!-- Scripts -->
