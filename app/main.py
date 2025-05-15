@@ -6,6 +6,8 @@ from app.routes import query, draft, summarize, base
 
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import legal_research
+from app.routes import practical_guidance
+
 
 app = FastAPI()
 app.add_middleware(
@@ -24,6 +26,7 @@ app.include_router(draft.router)
 app.include_router(summarize.router)
 app.include_router(base.router)
 app.include_router(legal_research.router)
+app.include_router(practical_guidance.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):

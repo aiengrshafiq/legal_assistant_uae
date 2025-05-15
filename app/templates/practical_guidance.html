@@ -1,0 +1,45 @@
+# File: app/templates/legal_research.html
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Practical Legal Guidance</h2>
+    <form id="guidanceForm">
+        <div class="mb-3">
+            <label class="form-label">Legal Issue</label>
+            <input type="text" class="form-control" required id="legalIssue" placeholder="e.g. How to file a labor complaint in Dubai">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">You are a</label>
+            <select class="form-select" id="userRole">
+                <option>General Public</option>
+                <option>Lawyer / Legal Professional</option>
+                <option>Business Owner</option>
+                <option>Tenant / Landlord</option>
+                <option>Employee / Employer</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Urgency</label>
+            <select class="form-select" id="urgencyLevel">
+                <option>Not Urgent</option>
+                <option>Urgent (Need Action This Week)</option>
+                <option>Emergency (Immediate Attention)</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Additional Details</label>
+            <textarea class="form-control" id="optionalDetails" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="generateGuiadanceBtn">Get Guidance</button>
+    </form>
+
+    <div class="mt-4">
+        <h5>Guidance Output:</h5>
+        <div id="guidanceResult" class="border p-3 bg-light"></div>
+    </div>
+</div>
+<script src="/static/js/guidance.js"></script>
+
+
+
+{% endblock %}
