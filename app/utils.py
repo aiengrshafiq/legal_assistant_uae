@@ -5,6 +5,8 @@ from qdrant_client.http.models import SearchParams
 from openai import OpenAI
 from dotenv import load_dotenv
 import fitz
+import docx
+import io
 load_dotenv()
 
 # === OpenAI & Qdrant Configuration ===
@@ -87,3 +89,25 @@ def direct_qdrant_search(query: str, lang: str = "en", k: int = 10) -> List[Docu
         docs.append(Document(page_content=content, metadata=metadata))
 
     return docs
+
+def extract_text_from_upload(file_bytes):
+    if not file_bytes:
+        return ""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        return "\n".join([page.get_text() for page in doc])
+    except Exception as e:
+        print(f"[❌] PDF processing error: {e}")
+        return ""
+
+def extract_text_from_upload_all(filename, file_bytes):
+    if filename.endswith(".pdf"):
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        return "\n".join(page.get_text() for page in doc)
+    elif filename.endswith(".docx"):
+        doc = docx.Document(io.BytesIO(file_bytes))
+        return "\n".join([para.text for para in doc.paragraphs])
+    elif filename.endswith(".txt"):
+        return file_bytes.decode("utf-8")
+    else:
+        raise ValueError("Unsupported file format. Please upload PDF, DOCX, or TXT.")

@@ -1,0 +1,98 @@
+# File: app/templates/document_analysis.html
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <h2>📄 Document Analysis</h2>
+    <p class="text-muted">Upload a legal document to receive AI-powered analysis, insights, and risk detection.</p>
+
+    <form id="analysisForm" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">📁 Upload Legal Document</label>
+            <input type="file" class="form-control" name="file" id="file" required accept=".pdf,.docx,.txt">
+        </div>
+        <div class="row">
+            <div class="col">
+                <label class="form-label">📌 Document Type</label>
+                <select name="docType" class="form-select">
+                    <option value="">Select...</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Judgment">Court Judgment</option>
+                    <option value="License">License</option>
+                    <option value="Gov Notice">Govt. Notification</option>
+                </select>
+            </div>
+            <div class="col">
+                <label class="form-label">🌍 Jurisdiction</label>
+                <input type="text" class="form-control" name="jurisdiction" placeholder="e.g., Dubai">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Analyze Document</button>
+    </form>
+
+    <div id="progress" class="mt-3" style="display: none;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span class="ms-2">Analyzing document, please wait...</span>
+    </div>
+
+    <div id="analysisResult" class="mt-4" style="display: none;">
+        <div class="card p-3">
+            <h5><strong>📘 Summary</strong></h5>
+            <p id="summaryText"></p>
+
+            <h5><strong>🔑 Key Clauses</strong></h5>
+            <p id="clausesText"></p>
+
+            <h5><strong>⚠️ Risk Areas</strong></h5>
+            <ul id="risksList" class="list-group"></ul>
+
+            <h5><strong>📜 Compliance Issues</strong></h5>
+            <p id="complianceText"></p>
+
+            <h5><strong>📚 Legal References</strong></h5>
+            <p id="referencesText"></p>
+
+            <small class="text-muted">⚖️ This analysis is for informational purposes only and does not constitute legal advice.</small>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById("analysisForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        document.getElementById("progress").style.display = "block";
+        document.getElementById("analysisResult").style.display = "none";
+
+        const res = await fetch("/api/analyze", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        document.getElementById("progress").style.display = "none";
+
+        if (data.error) {
+            alert("❌ " + data.error);
+            return;
+        }
+
+        const result = data.result;
+        document.getElementById("summaryText").innerText = result.summary || "-";
+        document.getElementById("clausesText").innerText = result.clauses || "-";
+        document.getElementById("complianceText").innerText = result.compliance || "-";
+        document.getElementById("referencesText").innerText = result.references || "-";
+
+        const risksList = document.getElementById("risksList");
+        risksList.innerHTML = "";
+        (result.risks || []).forEach(r => {
+            const item = document.createElement("li");
+            item.className = `list-group-item list-group-item-${r.level?.toLowerCase() || 'secondary'}`;
+            item.innerText = `${r.description} (${r.level})`;
+            risksList.appendChild(item);
+        });
+
+        document.getElementById("analysisResult").style.display = "block";
+    });
+</script>
+
+{% endblock %}

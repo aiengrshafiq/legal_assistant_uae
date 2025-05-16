@@ -8,6 +8,59 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4")
 
+def call_llm_chain(prompt: str) -> dict:
+    
+
+    
+
+    response = client.chat.completions.create(
+        model=GPT_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    content = response.choices[0].message.content
+
+    # Parse sections (if you're returning structured data)
+    return {
+        "summary": content,  # For now assume full response is summary
+        "clauses": "",
+        "risks": [],
+        "compliance": "",
+        "references": ""
+    }
+
+def run_case_analysis_chain(structured_input, language="en"):
+    from openai import OpenAI
+    import os
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    prompt = f"""
+You are a litigation assistant. Analyze the following legal case:
+
+Title: {structured_input['title']}
+Type: {structured_input['type']}
+Jurisdiction: {structured_input['jurisdiction']}
+Parties: {structured_input['parties']}
+Claim: {structured_input['claim']}
+Desired Outcome: {structured_input['outcome']}
+Representation: {structured_input['representation']}
+
+Respond in structured format:
+- Case Summary
+- Case Strength (Low/Medium/High)
+- Arguments For
+- Arguments Against
+- Key Risk Factors
+- Estimated Duration & Cost
+- Referenced UAE Laws
+- Final Recommendation
+"""
+    completion = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return completion.choices[0].message.content
+
 def setup_qa_chain(query, temp=0.0, k=10):
     query_lang = utils.detect_language(query)
     docs = utils.direct_qdrant_search(query, lang=query_lang, k=k)
