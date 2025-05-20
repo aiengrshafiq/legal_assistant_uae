@@ -9,6 +9,7 @@ from app.routes import legal_research
 from app.routes import practical_guidance,litigation_analysis,document_analysis
 
 
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
