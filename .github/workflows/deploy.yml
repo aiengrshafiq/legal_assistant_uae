@@ -6,9 +6,9 @@ on:
       - main
 
 env:
-  AZURE_WEBAPP_NAME: uae-legal-assistant
-  AZURE_CONTAINER_REGISTRY: mylegalacr.azurecr.io
-  IMAGE_NAME: uae-legal-assistant
+  AZURE_WEBAPP_NAME: legalsaasaifewebapp
+  AZURE_CONTAINER_REGISTRY: legalsaasaifeacr.azurecr.io
+  IMAGE_NAME: uae-legal-assistant-app-saas
 
 jobs:
   build-and-deploy:
