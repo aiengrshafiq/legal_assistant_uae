@@ -11,10 +11,16 @@
     <script src="/static/js/main.js"></script>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0" style="font-family: 'Roboto', sans-serif;">UAE Legal Assistant</h5>
-        <nav>
+     <!-- Header -->
+    <div class="header d-flex justify-content-between align-items-center px-3 py-2 bg-dark text-white">
+        <div class="d-flex align-items-center">
+            <!-- Sidebar Toggle Button -->
+            <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+                ☰
+            </button>
+            <h5 class="mb-0" style="font-family: 'Roboto', sans-serif;">UAE Legal Assistant</h5>
+        </div>
+        <nav class="d-none d-md-flex">
             <a href="/coming-soon" class="text-white me-3">Profile</a>
             <a href="/coming-soon" class="text-white me-3">Folders</a>
             <a href="/coming-soon" class="text-white me-3">History</a>
@@ -22,15 +28,36 @@
         </nav>
     </div>
 
-     <!-- Sidebar -->
-     <div class="sidebar">
+    <!-- Sidebar toggle button (only visible on mobile) -->
+    <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+        ☰
+    </button>
+    <!-- Sidebar (Desktop only) -->
+    <div class="sidebar d-none d-md-block">
         <a href="/">AI Assistant</a>
         <a href="/generate-draft">Generate a Draft</a>
         <a href="/legal-research">Legal Research</a>
-        <a href="/coming-soon">Practical Guidance</a>
-        <a href="/coming-soon">Litigation Analysis</a>
-        <a href="/coming-soon">Documents Analysis</a>
+        <a href="/practical-guidance">Practical Guidance</a>
+        <a href="/litigation-analyze">Litigation Analysis</a>
+        <a href="/document_analysis">Documents Analysis</a>
         <a href="/coming-soon">Legal News Hub</a>
+    </div>
+
+    <!-- Offcanvas Sidebar (Mobile only) -->
+    <div class="offcanvas offcanvas-start offcanvas-custom d-md-none" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <a href="/">AI Assistant</a>
+            <a href="/generate-draft">Generate a Draft</a>
+            <a href="/legal-research">Legal Research</a>
+            <a href="/practical-guidance">Practical Guidance</a>
+            <a href="/litigation-analyze">Litigation Analysis</a>
+            <a href="/document_analysis">Documents Analysis</a>
+            <a href="/coming-soon">Legal News Hub</a>
+        </div>
     </div>
 
     <!-- Main Content -->
