@@ -1,57 +1,72 @@
-from openai import OpenAI
+# File: app/services/rag.py
+
 import os
-
-from dotenv import load_dotenv
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-from app.qachain import setup_qa_chain  # your provided logic
 import logging
+from typing import List, Tuple
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import SearchParams
+from langchain.schema import Document
+from dotenv import load_dotenv
+from openai import OpenAI
 
-def ask_question(question: str) -> dict:
+load_dotenv()
+
+# === OpenAI & Qdrant Setup ===
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+QDRANT_HOST = os.getenv("QDRANT_HOST")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+COLLECTION_EN = "uae_law_openai"
+COLLECTION_AR = "uae_law_arabert"
+
+qd_client = QdrantClient(url=f"https://{QDRANT_HOST}", api_key=QDRANT_API_KEY)
+logger = logging.getLogger("RAG")
+
+def detect_language(text: str) -> str:
+    arabic_chars = set("ابتثجحخدذرزسشصضطظعغفقكلمنهوي")
+    return "ar" if any(c in arabic_chars for c in text) else "en"
+
+def embed_text(text: str) -> List[float]:
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=[text]
+    )
+    return response.data[0].embedding
+
+def search_qdrant(query: str, lang: str, k: int = 10) -> List[Document]:
+    embedding = embed_text(query)
+    collection = COLLECTION_AR if lang == "ar" else COLLECTION_EN
     try:
-        qa_chain, _ = setup_qa_chain(query=question, temp=0.0, k=10)
-        if qa_chain is None:
-            return {
-                "short_answer": "❌ No relevant documents found.",
-                "detailed_answer": "",
-                "sources": []
-            }
-
-        response = qa_chain(question)
-        raw_answer = response["result"]
-
-        # Split into short and detailed answer
-        short_answer, detailed_answer = "", ""
-        if "- Short Answer:" in raw_answer and "- Detailed Answer:" in raw_answer:
-            parts = raw_answer.split("- Detailed Answer:")
-            short_answer = parts[0].replace("- Short Answer:", "").strip()
-            detailed_answer = parts[1].strip()
-        else:
-            short_answer = raw_answer.strip()
-
-        sources = []
-        for doc in response.get("source_documents", []):
-            metadata = doc.metadata or {}
-            filename = metadata.get("source", "Unknown file")
-            page = metadata.get("page", "N/A")
-            excerpt = doc.page_content.strip().replace("\n", " ")[:300]
-            sources.append({
-                "filename": filename,
-                "page": str(page),  # ✅ This line fixes the validation error
-                "excerpt": excerpt
-            })
-
-        return {
-            "short_answer": short_answer,
-            "detailed_answer": detailed_answer,
-            "sources": sources
-        }
-
+        results = qd_client.search(
+            collection_name=collection,
+            query_vector=embedding,
+            limit=k,
+            search_params=SearchParams(hnsw_ef=128)
+        )
     except Exception as e:
-        logging.exception("Error during question answering:")
-        return {
-            "short_answer": "❌ An error occurred while answering your question.",
-            "detailed_answer": "",
-            "sources": []
+        logger.exception("Qdrant search failed")
+        return []
+
+    docs = []
+    for hit in results:
+        payload = hit.payload or {}
+        metadata = {
+            "source": payload.get("source", "unknown"),
+            "page": payload.get("page", "N/A")
         }
+        content = payload.get("page_content") or payload.get("text", "")
+        logger.info(f"QDRANT HIT: {metadata['source']} - Page {metadata['page']}")
+        docs.append(Document(page_content=content, metadata=metadata))
+    return docs
+
+def compress_chunks_if_needed(docs: List[Document], max_tokens: int = 3000) -> str:
+    context = "\n\n".join(doc.page_content for doc in docs)
+    if len(context.split()) > max_tokens:
+        summary_prompt = f"""Summarize the following legal content:
+
+{context}"""
+        summary = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": summary_prompt}]
+        ).choices[0].message.content
+        return summary
+    return context

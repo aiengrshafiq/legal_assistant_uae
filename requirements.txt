@@ -9,3 +9,5 @@ langchain
 pymupdf
 reportlab
 python-docx
+langchain_community
+langchain-openai

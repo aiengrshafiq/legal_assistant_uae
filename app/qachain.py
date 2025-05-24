@@ -1,39 +1,57 @@
+
+from langchain.chains import RetrievalQA
+from langchain.schema import Document as LCDocument
 import os
-from app import utils
-from dotenv import load_dotenv
-from openai import OpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain_core.runnables import RunnableLambda, RunnableMap
+from langchain_openai import ChatOpenAI
+from app.services.rag import detect_language, search_qdrant, compress_chunks_if_needed
 
-load_dotenv()
+template = """You are a UAE legal assistant. Use the context below to answer the user's legal question.
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4")
+Return answer in this format:
+- Short Answer: (3-5 sentence summary)
+- Detailed Answer:
+Use <strong>bold headings</strong>, legal references, bullet points, and end with a Conclusion.
 
-def call_llm_chain(prompt: str) -> dict:
-    
+Context:
+{context}
 
-    
+Question:
+{question}
 
-    response = client.chat.completions.create(
-        model=GPT_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
+Response:
+- Short Answer:
+- Detailed Answer:"""
 
-    content = response.choices[0].message.content
+PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
 
-    # Parse sections (if you're returning structured data)
-    return {
-        "summary": content,  # For now assume full response is summary
-        "clauses": "",
-        "risks": [],
-        "compliance": "",
-        "references": ""
-    }
+def setup_qa_chain(query: str, temp: float = 0.3, k: int = 10):
+    lang = detect_language(query)
+    docs = search_qdrant(query, lang, k=k)
+    if not docs:
+        return None, None
+
+    context = compress_chunks_if_needed(docs)
+
+    llm = ChatOpenAI(temperature=temp, model_name="gpt-4")
+
+    # New Runnable-style chain
+    chain = PROMPT | llm
+
+    def run_chain(question_text):
+        inputs = {"context": context, "question": question_text}
+        result = chain.invoke(inputs)  # Replaces `.run()`
+        return {
+            "result": result,
+            "source_documents": docs
+        }
+
+    return run_chain, docs
+
 
 def run_case_analysis_chain(structured_input, language="en"):
-    from openai import OpenAI
-    import os
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     prompt = f"""
 You are a litigation assistant. Analyze the following legal case:
 
@@ -55,59 +73,34 @@ Respond in structured format:
 - Referenced UAE Laws
 - Final Recommendation
 """
+
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     completion = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}]
     )
+
     return completion.choices[0].message.content
 
-def setup_qa_chain(query, temp=0.0, k=10):
-    query_lang = utils.detect_language(query)
-    docs = utils.direct_qdrant_search(query, lang=query_lang, k=k)
+def call_llm_chain(prompt: str) -> dict:
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    if not docs:
-        return None, None
+    response = client.chat.completions.create(
+        model=os.getenv("GPT_MODEL", "gpt-4"),
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
 
-    context = "\n\n".join([doc.page_content for doc in docs])
-
-    prompt = f"""You are a UAE legal assistant. Use the context below to answer the user's legal question.
-
-        Always return your answer in this exact format:
-        - Short Answer: (3-5 sentence summary)
-
-        - Detailed Answer:
-        Structure the detailed answer as follows:
-        • Use <strong>bold headings</strong> for major sections (e.g., "Key Provisions", "Criminal Offenses", "Conclusion").
-        • Highlight legal references like "Federal Decree-Law No. (51) of 2023" and "Article (272)" clearly.
-        • Use numbered or bulleted lists where applicable.
-        • Make it scannable and aligned for legal professionals and business readers.
-        • End with a short Conclusion if applicable.
-
-        If the answer is not present, reply:
-        "Sorry, the information you're asking for isn't available in the provided documents."
-
-        Context:
-        {context}
-
-        Question:
-        {query}
-
-        Response:
-        - Short Answer:
-        - Detailed Answer:"""
+    content = response.choices[0].message.content
+    return {
+        "summary": content,
+        "clauses": "",
+        "risks": [],
+        "compliance": "",
+        "references": ""
+    }
 
 
-    def manual_qa_chain(query):
-        try:
-            response = client.chat.completions.create(
-                model=GPT_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temp
-            )
-            answer = response.choices[0].message.content
-            return {"result": answer, "source_documents": docs}
-        except Exception as e:
-            print(f"[OpenAI ERROR] {e}")
-            raise
-
-    return manual_qa_chain, docs
