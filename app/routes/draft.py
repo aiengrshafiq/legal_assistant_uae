@@ -1,14 +1,13 @@
 from fastapi import APIRouter, UploadFile, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from app.services.drafter import generate_draft
-
-from fastapi.responses import JSONResponse, StreamingResponse
-from app.services.drafter import generate_draft, generate_pdf_from_text
+from app.services.drafter import generate_legal_draft, generate_pdf_from_text
 from io import BytesIO
+import logging
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+logger = logging.getLogger("draft")
 
 @router.get("/generate-draft", response_class=HTMLResponse)
 async def draft_page(request: Request):
@@ -25,12 +24,21 @@ async def draft_file(
     instructions: str = Form(""),
     as_pdf: bool = Form(False)
 ):
-    content = await file.read() if file else description.encode()
-
     try:
-        draft = generate_draft(content, draft_type, language, recipient_name, recipient_contact, instructions)
+        file_bytes = await file.read() if file else None
+
+        draft = generate_legal_draft(
+            file_bytes=file_bytes,
+            description=description,
+            draft_type=draft_type,
+            language=language,
+            recipient=recipient_name,
+            contact=recipient_contact,
+            instructions=instructions
+        )
+
         if not draft.strip():
-            raise ValueError("Draft text is empty")
+            raise ValueError("Draft is empty")
 
         if as_pdf:
             pdf_bytes = generate_pdf_from_text(draft)
@@ -42,13 +50,12 @@ async def draft_file(
                     "Content-Length": str(len(pdf_bytes))
                 }
             )
-        else:
-            return JSONResponse(content={"draft": draft})
+
+        return JSONResponse(content={"draft": draft})
 
     except Exception as e:
-        print("[❌ ERROR] Failed to generate draft:", e)
+        logger.exception("❌ Draft generation failed")
         return JSONResponse(
             status_code=500,
-            content={"error": "Draft generation failed. Please check the uploaded content and try again."}
+            content={"error": "Draft generation failed. Please check the inputs and try again."}
         )
-
