@@ -1,12 +1,26 @@
-# File: app/services/research_service.py
-import fitz  # PyMuPDF
-from typing import Tuple, List
-from app.utils import extract_text, detect_language, direct_qdrant_search
-from openai import OpenAI
-import os
+# === File: app/services/research_service.py ===
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4")
+import os
+import fitz
+from typing import Tuple, List
+from app.services.rag import detect_language, search_qdrant, compress_chunks_if_needed
+from langchain.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+
+TEMPLATE = (
+    "You are a senior UAE legal research assistant.\n\n"
+    "Given the user's query and legal context, produce a professional legal research report.\n\n"
+    "Query:\n\"\"\"\n{query}\n\"\"\"\n\n"
+    "Context:\n\"\"\"\n{context}\n\"\"\"\n\n"
+    "Format the response in this structure:\n"
+    "1. 🔍 Summary (plain language)\n"
+    "2. 📑 Applicable Laws and Articles (with short explanation)\n"
+    "3. ⚖️ Related Precedents (case laws or rulings)\n"
+    "4. 🧾 Documentation Requirements (if any)\n"
+    "5. 🔗 References and Citations (linked to original sources)\n"
+)
+
+PROMPT = PromptTemplate(template=TEMPLATE, input_variables=["query", "context"])
 
 async def process_legal_research(
     topic: str,
@@ -16,50 +30,29 @@ async def process_legal_research(
     file,
     language: str
 ) -> Tuple[str, List[str], List[str], List[str]]:
-    # Prepare base query
-    base_query = f"Topic: {topic}. Jurisdiction: {jurisdiction}. Domain: {domain}. Question: {question}."
+    base_query = f"Topic: {topic}. Jurisdiction: {jurisdiction}. Domain: {domain or 'N/A'}. Question: {question or 'N/A'}."
 
-    # Include text from uploaded file if any
     if file:
         content = await file.read()
-        text = extract_text(content)
-        base_query += f"\nSupporting Document: {text[:2000]}"
+        try:
+            doc = fitz.open(stream=content, filetype="pdf")
+            text = "\n".join([page.get_text() for page in doc])
+            base_query += f"\nSupporting Document: {text[:2000]}"
+        except Exception as e:
+            base_query += "\n[Note: Failed to extract text from uploaded file]"
 
-    # Qdrant Search
-    results = direct_qdrant_search(base_query,language)
-    context_chunks = [r.page_content for r in results]
-    joined_context = "\n\n".join(context_chunks[:10])
+    lang = detect_language(base_query)
+    results = search_qdrant(base_query, lang=lang, k=15)
 
-    # GPT Summary
-    prompt = f"""
-You are a UAE Legal Research Assistant.
+    context = compress_chunks_if_needed(results)
+    llm = ChatOpenAI(model_name="gpt-4", temperature=0.3)
+    chain = PROMPT | llm
 
-Given the following legal topic, jurisdiction, and optional case document, summarize all relevant laws and legal actions in a structured way.
+    result = chain.invoke({"query": base_query, "context": context})
+    summary = str(result.content).strip()
 
-Format your response with the following sections:
-
-1. 🔍 Summary (plain language summary)
-2. 📑 Applicable Laws and Articles (bullet points with article numbers and short descriptions)
-3. ⚖️ Related Precedents (known rulings or common applications)
-4. 🧾 Required Legal Documentation (any specific doc requirements)
-5. 🔗 References and Sources (if any)
-
-Query:
-{base_query}
-
-Context:
-{joined_context}
-"""
-
-
-    response = client.chat.completions.create(
-        model=GPT_MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    summary = response.choices[0].message.content
-    articles = [r.page_content for r in results if 'article' in r.metadata.get("tags", [])]
-    cases = [r.page_content for r in results if 'case' in r.metadata.get("tags", [])]
+    articles = [r.page_content for r in results if 'article' in (r.metadata.get("tags") or [])]
+    cases = [r.page_content for r in results if 'case' in (r.metadata.get("tags") or [])]
     sources = list({r.metadata.get("source", "Unknown") for r in results})
 
     return summary, articles, cases, sources

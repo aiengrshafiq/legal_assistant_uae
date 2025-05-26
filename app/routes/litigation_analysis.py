@@ -1,15 +1,15 @@
-# Folder: routes/litigation_analysis.py
+# === File: app/routes/litigation_analysis.py ===
+
 from fastapi import APIRouter, Form, UploadFile, File, Request
-from fastapi.responses import JSONResponse,HTMLResponse
-from app.services.litigation_service import analyze_case
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
+from app.services.litigation_service import analyze_case
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-
 @router.get("/litigation-analyze", response_class=HTMLResponse)
-async def get_legal_research(request: Request):
+async def get_litigation_analysis_page(request: Request):
     return templates.TemplateResponse("litigation.html", {"request": request})
 
 @router.post("/api/litigation-analyze")
@@ -23,7 +23,7 @@ async def litigation_analysis_route(
     desired_outcome: str = Form(...),
     representation: str = Form(...),
     language: str = Form("en"),
-    file: UploadFile = File(None),
+    file: UploadFile = File(None)
 ):
     result = await analyze_case(
         case_title, case_type, jurisdiction, party_roles,
