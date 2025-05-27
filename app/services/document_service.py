@@ -6,30 +6,52 @@ from app.services.rag import detect_language, search_qdrant, compress_chunks_if_
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-doc_analysis_template = """You are a senior UAE legal analyst. Analyze the uploaded document based on content and UAE legal standards.
 
-Document Type: {doc_type}
-Jurisdiction: {jurisdiction}
+doc_analysis_template = """
+You are a UAE senior legal reviewer. Analyze the legal document provided, classify its clauses, and check compliance against UAE law using the context below.
+
+📄 Document Type: {doc_type}  
+📍 Jurisdiction: {jurisdiction}
 
 ---
-Document Content:
-\"\"\"
-{text}
-\"\"\"
+📘 Document Content:
+\"\"\"{text}\"\"\"
 
-Context from UAE law and similar documents:
-\"\"\"
-{context}
-\"\"\"
+📚 UAE Legal Context:
+\"\"\"{context}\"\"\"
 
-Provide the following analysis:
-1. 📘 Executive Summary
-2. 📌 Clause-by-Clause Breakdown
-3. ⚠️ Risk Factors (highlight ambiguous language, red flags, missing clauses)
-4. ✅ Compliance Assessment (alignment with UAE laws)
-5. 🛠️ Suggested Improvements
-6. 🔗 References (law citations or document chunks)
+---
+
+Respond in the following structured format:
+
+### 1. 📘 Executive Summary
+- Summarize the document in plain language (purpose, type, scope)
+
+### 2. 🔍 Clause Classification Table
+| Clause | Type | Description | Risk Level |
+|--------|------|-------------|------------|
+| ...    | Obligation / Penalty / Deadline / Other | ... | High / Medium / Low |
+
+### 3. ⚠️ Risk Factors
+- List risky or ambiguous clauses and assign severity level
+
+### 4. ✅ Compliance Assessment
+- Compare document terms with UAE law
+- Highlight any misalignment or required corrections
+
+### 5. 📅 Obligations & Deadlines Summary
+- Who is obligated, what action, and by when (if found)
+
+### 6. 🛠️ Suggested Improvements
+- Suggest clearer language, add missing clauses, reduce ambiguity
+
+### 7. 🔗 Legal References
+- For each citation: include
+  - Law Name, Article #, Clause #, Version, Hyperlink
+
+Respond formally and accurately. If content is unreadable, return: “Document is not analyzable due to poor text quality or empty input.”
 """
+
 
 ANALYSIS_PROMPT = PromptTemplate(
     template=doc_analysis_template,
@@ -43,6 +65,16 @@ async def analyze_legal_document(text: str, doc_type: str, jurisdiction: str):
     lang = detect_language(text[:1000])
     results = search_qdrant(text[:1500], lang=lang, k=10)
     context = compress_chunks_if_needed(results)
+    citations = []
+    for doc in results:
+        meta = doc.metadata or {}
+        if meta.get("law_name") and meta.get("article_number"):
+            citations.append(
+                f"{meta.get('law_name')} | Article {meta.get('article_number')} | Clause {meta.get('clause')} | Version: {meta.get('version')} | [Link]({meta.get('source_url')})"
+            )
+
+    context += "\n\n🔗 Cited UAE Laws:\n" + "\n".join(citations)
+
 
     llm = ChatOpenAI(model_name="gpt-4", temperature=0.3)
     chain = ANALYSIS_PROMPT | llm
@@ -62,16 +94,18 @@ async def analyze_legal_document(text: str, doc_type: str, jurisdiction: str):
         return "❌ An error occurred during document analysis."
 
 def parse_analysis_output(text: str) -> dict:
+    
     sections = {
         "summary": "",
         "clauses": "",
         "risks": [],
         "compliance": "",
+        "obligations": "",
         "references": ""
     }
 
     # Match headings using numbered emoji pattern
-    parts = re.split(r"\n\d+\.\s+📘|📌|⚠️|✅|🛠️|🔗", text)
+    parts = re.split(r"###\s+\d+\.\s+(?:📘|🔍|⚠️|✅|📅|🛠️|🔗)\s*", text)
     if len(parts) < 6:
         return {"raw": text}
 

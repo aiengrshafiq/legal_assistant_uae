@@ -77,19 +77,28 @@
         }
 
         const result = data.result;
-        document.getElementById("summaryText").innerText = result.summary || "-";
-        document.getElementById("clausesText").innerText = result.clauses || "-";
-        document.getElementById("complianceText").innerText = result.compliance || "-";
-        document.getElementById("referencesText").innerText = result.references || "-";
 
-        const risksList = document.getElementById("risksList");
-        risksList.innerHTML = "";
-        (result.risks || []).forEach(r => {
-            const item = document.createElement("li");
-            item.className = `list-group-item list-group-item-${r.level?.toLowerCase() || 'secondary'}`;
-            item.innerText = `${r.description} (${r.level})`;
-            risksList.appendChild(item);
-        });
+        if (result.raw) {
+            document.getElementById("summaryText").innerText = result.raw;
+            document.getElementById("clausesText").innerText = "-";
+            document.getElementById("complianceText").innerText = "-";
+            document.getElementById("referencesText").innerText = "-";
+            document.getElementById("risksList").innerHTML = "<li class='list-group-item'>Parsing failed — raw response displayed below.</li>";
+        } else {
+            document.getElementById("summaryText").innerText = result.summary || "-";
+            document.getElementById("clausesText").innerText = result.clauses || "-";
+            document.getElementById("complianceText").innerText = result.compliance || "-";
+            document.getElementById("referencesText").innerText = result.references || "-";
+
+            const risksList = document.getElementById("risksList");
+            risksList.innerHTML = "";
+            (result.risks || []).forEach(r => {
+                const item = document.createElement("li");
+                item.className = `list-group-item list-group-item-${r.level?.toLowerCase() || 'secondary'}`;
+                item.innerText = `${r.description} (${r.level})`;
+                risksList.appendChild(item);
+            });
+        }
 
         document.getElementById("analysisResult").style.display = "block";
     });
