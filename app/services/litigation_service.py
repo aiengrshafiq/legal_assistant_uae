@@ -6,37 +6,67 @@ from app.services.rag import detect_language, search_qdrant, compress_chunks_if_
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-TEMPLATE = """You are a senior UAE litigation analyst. Analyze the case based on the information provided by the user and legal context.
 
-Case Title: {title}
-Case Type: {type}
-Jurisdiction: {jurisdiction}
-Parties: {parties}
-Claim Summary:
+TEMPLATE = """
+You are a senior UAE litigation strategist. Analyze this legal case using UAE law and precedents.
 
-\"\"\"
-{claim}
-\"\"\"
+Use the context to cite laws (law name, article, clause, version, URL). Follow this response format:
 
-Desired Outcome: {outcome}
-Representation: {representation}
+📌 **Case Title**: {title}  
+📍 **Jurisdiction**: {jurisdiction}  
+📁 **Case Type**: {type}  
+🧑‍⚖️ **Parties**: {parties}  
+🧾 **Claim Summary**:
+\"\"\"{claim}\"\"\"
 
-Context from similar UAE rulings and statutes:
+🎯 **Desired Outcome**: {outcome}  
+📣 **Representation Status**: {representation}
 
-\"\"\"
-{context}
-\"\"\"
+📚 **Relevant UAE Legal Context**:
+\"\"\"{context}\"\"\"
 
+---
 
-Provide a detailed litigation analysis with the following structure:
-1. 🧩 Key Issues Identified
-2. 🛡️ Positions and Arguments (Factual, Procedural, Legal)
-3. 📚 Relevant Laws and Case Precedents
-4. ⚖️ Strengths & Weaknesses
-5. 📝 Legal Risk Assessment (e.g., High, Medium, Low)
-6. 📈 Strategic Recommendations (if any)
-7. 🔗 Source References and Citations
+### 1. 🧩 Key Issues Identified
+- List the core legal questions or claims under dispute.
+
+### 2. 🛡️ Positions and Arguments
+- **Factual**: Describe facts supporting each side.
+- **Procedural**: Identify filing issues, admissibility, timelines.
+- **Legal**: Reference UAE law supporting or weakening each claim.
+
+### 3. 📚 Applicable UAE Laws and Precedents
+- Law Name: ___  
+- Article: ___  
+- Clause: ___  
+- Version: ___  
+- Source URL: ___
+
+### 4. ⚖️ Strengths vs Weaknesses
+| Factor               | Strengths (✓)                         | Weaknesses (⚠️)                      |
+|----------------------|----------------------------------------|--------------------------------------|
+| Legal Merits         |                                        |                                      |
+| Documentation        |                                        |                                      |
+| Jurisdiction Clarity |                                        |                                      |
+| Procedural Validity  |                                        |                                      |
+
+### 5. 🔥 Legal Risk Heatmap
+- Risk Level: High / Medium / Low
+- Key risks and risk drivers (e.g., lack of proof, weak law support)
+
+### 6. 📈 Litigation Strategy Recommendation
+- Suggested actions: Mediation → Arbitration → Court  
+- Timeline estimate  
+- Cost & effort estimate  
+- Probability of success (if clear)
+
+### 7. 🔗 UAE Law Citations
+- Include structured references:
+  - Law Name, Article, Clause, Version, Hyperlinked Source (if available)
+
+Respond formally and precisely. If context is missing, say: "Unable to analyze due to insufficient UAE law data."
 """
+
 
 PROMPT = PromptTemplate(
     template=TEMPLATE,
@@ -74,6 +104,23 @@ async def analyze_case(
     lang = detect_language(base_text[:1000])
     results = search_qdrant(base_text, lang=lang, k=12)
     context = compress_chunks_if_needed(results)
+
+    if not claim_description.strip():
+        return "❌ Claim description is required for litigation analysis."
+
+    if not context.strip():
+        return "❌ Insufficient UAE legal context found for proper litigation analysis. Please revise input or upload stronger case file."
+
+
+    citations = []
+    for doc in results:
+        meta = doc.metadata or {}
+        if meta.get("law_name") and meta.get("article_number"):
+            citations.append(
+                f"{meta.get('law_name')} | Article {meta.get('article_number')} | Clause {meta.get('clause')} | Version: {meta.get('version')} | [Link]({meta.get('source_url')})"
+            )
+
+    context += "\n\n🔗 Cited Laws:\n" + "\n".join(citations)
 
     llm = ChatOpenAI(model_name="gpt-4", temperature=0.3)
     chain = PROMPT | llm

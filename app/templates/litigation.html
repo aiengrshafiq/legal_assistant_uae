@@ -76,9 +76,11 @@ document.querySelector('#litigationForm').addEventListener('submit', async funct
 
             const data = await res.json();
             document.getElementById('resultContainer').style.display = 'block';
-            document.getElementById('analysisOutput').innerHTML = data.analysis
-        .replace(/^(-\s)?(Case Summary|Case Strength|Arguments For|Arguments Against|Key Risk Factors|Estimated Duration & Cost|Referenced UAE Laws|Final Recommendation):/gm, 
-                (match, dash, label) => `<strong>${label}:</strong>`);
+        //     document.getElementById('analysisOutput').innerHTML = data.analysis
+        // .replace(/^(-\s)?(Case Summary|Case Strength|Arguments For|Arguments Against|Key Risk Factors|Estimated Duration & Cost|Referenced UAE Laws|Final Recommendation):/gm, 
+        //         (match, dash, label) => `<strong>${label}:</strong>`);
+        document.getElementById('analysisOutput').innerHTML = `<pre style="white-space:pre-wrap; font-family:monospace;">${data.analysis}</pre>`;
+
             } catch (err) {
                 alert("Failed to generate draft.");
             } finally {
@@ -94,6 +96,17 @@ document.querySelector('#litigationForm').addEventListener('submit', async funct
 }
 
 </style>
+<style>
+#analysisOutput pre {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+}
+</style>
+
 <style>
     textarea.form-control::placeholder {
       color: #adb5bd; /* lighter gray */
