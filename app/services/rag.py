@@ -51,7 +51,13 @@ def search_qdrant(query: str, lang: str, k: int = 10) -> List[Document]:
         payload = hit.payload or {}
         metadata = {
             "source": payload.get("source", "unknown"),
-            "page": payload.get("page", "N/A")
+            "page": payload.get("page", "N/A"),
+            "law_name": payload.get("law_name", ""),
+            "lang": payload.get("lang", ""),
+            "article_number": payload.get("article_number", ""),
+            "clause": payload.get("clause", ""),
+            "version": payload.get("version", ""),
+            "source_url": payload.get("source_url", "")
         }
         content = payload.get("page_content") or payload.get("text", "")
         logger.info(f"QDRANT HIT: {metadata['source']} - Page {metadata['page']}")
@@ -70,3 +76,12 @@ def compress_chunks_if_needed(docs: List[Document], max_tokens: int = 3000) -> s
         ).choices[0].message.content
         return summary
     return context
+
+
+def needs_clarification(question: str):
+    required_keywords = ["jurisdiction", "value", "status"]
+    missing = [kw for kw in required_keywords if kw not in question.lower()]
+    if missing:
+        return f"❌ Please clarify the following before proceeding: {', '.join(missing)}."
+    return None
+

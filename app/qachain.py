@@ -6,14 +6,46 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI
-from app.services.rag import detect_language, search_qdrant, compress_chunks_if_needed
+from app.services.rag import detect_language, search_qdrant, compress_chunks_if_needed, needs_clarification
 
-template = """You are a UAE legal assistant. Use the context below to answer the user's legal question.
+TEMPLATE = """
+You are a UAE legal strategist. Analyze the user’s query and provide a step-by-step legal strategy using UAE laws. Do not speculate.
 
-Return answer in this format:
-- Short Answer: (3-5 sentence summary)
-- Detailed Answer:
-Use <strong>bold headings</strong>, legal references, bullet points, and end with a Conclusion.
+Only proceed if all necessary context is available (jurisdiction, agreement status, value, etc). If anything is missing, reply only with a clarifying question and do NOT generate legal advice.
+
+Respond in this exact format:
+##SHORT_ANSWER##
+(3–5 sentence summary)
+
+##DETAILED_ANSWER##
+<strong>1. Legal Issue Summary:</strong>
+[2-line summary]
+
+<strong>2. Applicable UAE Laws:</strong>
+- Law Name: [Name]
+- Article #: [Article Number]
+- Clause: [Clause Number]
+- Version: [Version]
+- Link: [source_url]
+
+<strong>3. Legal Steps:</strong>
+- Serve Notice
+- Mediation
+- File Civil Case
+
+<strong>4. Required Documents:</strong>
+- Emirates ID, Contract Copy
+
+<strong>5. Recommended Dispute Resolution Route:</strong>
+- If arbitration clause exists: Arbitration
+- Else: Civil Court
+- If value < 50K AED: Small Claims Tribunal
+
+<strong>6. Timeline & Costs:</strong>
+- [e.g., 1–3 months, AED 3,000]
+
+<strong>7. Conclusion:</strong>
+[Final legal opinion]
 
 Context:
 {context}
@@ -22,10 +54,10 @@ Question:
 {question}
 
 Response:
-- Short Answer:
-- Detailed Answer:"""
+"""
 
-PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
+
+PROMPT = PromptTemplate(template=TEMPLATE, input_variables=["context", "question"])
 
 def setup_qa_chain(query: str, temp: float = 0.3, k: int = 10):
     lang = detect_language(query)
