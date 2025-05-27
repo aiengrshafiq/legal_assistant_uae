@@ -13,27 +13,59 @@ from langchain_core.runnables import RunnableMap
 
 logger = logging.getLogger("summarizer")
 
-TEMPLATE = """You are a professional UAE legal assistant. A legal case has been submitted for summary. 
-Use the document content and retrieved legal context to summarize the case clearly, accurately, and completely.
 
-Instructions:
-- Provide both extractive and abstractive summaries.
-- Annotate key segments like "Facts", "Arguments", "Judgment", and "Legal Issues".
-- Reference original sections where possible.
-- Use UAE legal terms and maintain clarity for non-lawyers.
+TEMPLATE = """You are a professional UAE legal strategist. A user has submitted a legal document (PDF or DOCX). Use the contents of the case and supporting UAE legal context to produce a comprehensive summary.
 
----
+🎯 Objective:
+- Summarize all key facts and arguments
+- Annotate legal issues clearly
+- Provide legal grounding with citations
+- Recommend next legal steps
 
-📄 Case Content:
+📄 Document Content:
 \"\"\"{document}\"\"\"
 
-📚 Legal Context:
+📚 UAE Legal Context:
 \"\"\"{context}\"\"\"
 
----
+📘 Summary Output:
 
-✍️ Write the structured summary with headings and annotations:
+## 🧾 Case Summary
+
+### 1. Facts:
+- List core facts from the document (dates, parties, contract terms)
+
+### 2. Legal Issues:
+- Identify and explain the key legal disputes
+
+### 3. Legal Citations:
+- Mention UAE laws, articles, clauses used in context
+- Format:
+  - Law Name: ___
+  - Article #: ___
+  - Clause: ___
+  - Version: ___
+  - URL: ___
+
+### 4. Arguments:
+- User's position
+- Opponent's position (if present)
+
+### 5. Analysis & Reasoning:
+- Interpret legal grounding for or against the user
+- Show how retrieved UAE laws apply
+
+### 6. 📌 Next Legal Steps:
+- Recommend Notice, Arbitration, or Court
+- Required Documents
+- Time & Cost Estimate
+
+### 7. Final Legal Opinion:
+- Conclude with professional recommendation
+
+Respond formally and clearly. If laws are missing or not applicable, state: “I cannot advise without legal grounding from UAE law.”
 """
+
 
 PROMPT = PromptTemplate(
     template=TEMPLATE,
@@ -67,7 +99,15 @@ def summarize_case(filename: str, file_bytes: bytes) -> str:
     if not docs:
         return "❌ No relevant UAE legal context was found in the knowledge base."
 
-    context = compress_chunks_if_needed(docs)
+    citations = []
+    for doc in docs:
+        meta = doc.metadata or {}
+        if meta.get("law_name") and meta.get("article_number"):
+            citations.append(f"- {meta.get('law_name')} | Article: {meta.get('article_number')} | Clause: {meta.get('clause')} | Version: {meta.get('version')} | URL: {meta.get('source_url')}")
+
+
+    
+    context = compress_chunks_if_needed(docs) + "\n\n📌 Extracted Legal Citations:\n" + "\n".join(citations)
 
     llm = ChatOpenAI(temperature=0.3, model_name="gpt-4")
     chain = PROMPT | llm
