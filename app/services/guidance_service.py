@@ -5,30 +5,54 @@ from app.services.rag import detect_language, search_qdrant, compress_chunks_if_
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-TEMPLATE = """You are a professional UAE legal advisor. Based on the user's query and context, generate clear, structured, and practical legal guidance.
 
-Legal Issue: {legal_issue}
-User Role: {user_role}
-Urgency: {urgency}
-Additional Info: {extra}
+TEMPLATE = """
+You are a UAE legal strategy advisor. Given the user's situation and legal context, generate **accurate and practical guidance** according to UAE laws.
 
-Use the context below to ensure the advice is accurate and UAE-specific.
+👤 User Role: {user_role}  
+🚨 Urgency: {urgency}  
+📌 Legal Issue: {legal_issue}  
+📝 Additional Info: {extra}  
 
-Context:
-\"\"\"
-{context}
-\"\"\"
+📚 Legal Context:
+\"\"\"{context}\"\"\"
 
-Structure the response as follows:
-1. 🧾 Overview
-2. ✅ Step-by-Step Instructions
-3. 📑 Required Documents
-4. 🏛️ Authorities Involved
-5. 💡 Legal Tips
-6. ⏳ Time & Cost Estimates
-7. ⚠️ Common Mistakes to Avoid
-8. 🔗 Source References (hyperlinked if possible)
+Respond in this exact structure:
+
+### 1. 🧾 Overview
+- Briefly explain the issue and its UAE legal relevance.
+
+### 2. ✅ Step-by-Step Legal Action Plan
+- Include legal steps like:
+  - Serve notice  
+  - File complaint with MOHRE / Notary / Court  
+  - Attempt arbitration or mediation  
+  - Initiate legal proceedings
+
+### 3. 📑 Required Documents
+- Emirates ID  
+- Contract copies  
+- Supporting evidence
+
+### 4. 🏛️ Authorities Involved
+- Mention specific UAE bodies (MOHRE, Notary Public, Civil Courts, DIFC, etc.)
+
+### 5. 💡 Legal Tips
+- Share actionable tips based on UAE practice
+
+### 6. ⏳ Estimated Timeline & Cost
+- Estimate processing time and typical legal fees
+
+### 7. ⚠️ Common Mistakes to Avoid
+- E.g., missing deadlines, not registering tenancy contract, etc.
+
+### 8. 🔗 UAE Law References
+- For each cited article, include:
+  - Law Name, Article #, Clause #, Version, Hyperlink
+
+Always tailor your response to the user's role and legal context. Respond in formal and clear language.
 """
+
 
 PROMPT = PromptTemplate(
     template=TEMPLATE,
@@ -41,13 +65,23 @@ def generate_guidance(data: dict) -> str:
     urgency = data.get("urgencyLevel", "").strip()
     extra = data.get("optionalDetails", "").strip()
 
-    if not legal_issue:
-        return "❌ Legal issue is required."
+    if not legal_issue or len(legal_issue) < 5:
+        return "❌ Please specify a clear legal issue to proceed (e.g., 'termination of tenancy agreement', 'salary dispute', etc.)"
 
     full_query = f"Legal Issue: {legal_issue}. Role: {user_role}. Urgency: {urgency}. Extra: {extra}"
     lang = detect_language(full_query)
     docs = search_qdrant(full_query, lang=lang, k=10)
     context = compress_chunks_if_needed(docs)
+
+    citations = []
+    for doc in docs:
+        meta = doc.metadata or {}
+        if meta.get("law_name") and meta.get("article_number"):
+            citations.append(
+                f"{meta.get('law_name')} | Article {meta.get('article_number')} | Clause {meta.get('clause')} | Version: {meta.get('version')} | [Link]({meta.get('source_url')})"
+            )
+
+    context += "\n\n🔗 Cited UAE Laws:\n" + "\n".join(citations)
 
     llm = ChatOpenAI(temperature=0.3, model_name="gpt-4")
     chain = PROMPT | llm
