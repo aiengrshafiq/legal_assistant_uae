@@ -12,6 +12,9 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.auth.database import get_db
 
+from sqlalchemy.exc import SQLAlchemyError
+import json
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
 ALGORITHM = "HS256"
@@ -30,16 +33,27 @@ def decode_token(token: str):
 
 
 def log_query(user_email, username, module, question, response):
-    db = SessionLocal()
-    log = QueryLog(
-        email=user_email,
-        username=username,
-        module=module,
-        question=question,
-        response=response
-    )
-    db.add(log)
-    db.commit()
+    try:
+       
+        db = SessionLocal()
+
+        # 🛠 Safely convert response to string if it's a dict
+        if isinstance(response, dict):
+            response = json.dumps(response)
+
+        log = QueryLog(
+            email=user_email,
+            username=username,
+            module=module,
+            question=question,
+            response=response[:3000],  # Truncate to avoid DB size issues
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+    except SQLAlchemyError as e:
+        import logging
+        logging.exception("❌ Failed to log query")
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token = request.cookies.get("access_token")

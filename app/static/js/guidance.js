@@ -10,20 +10,33 @@ document.getElementById("guidanceForm").addEventListener("submit", async functio
         urgencyLevel: document.getElementById("urgencyLevel").value,
         optionalDetails: document.getElementById("optionalDetails").value,
     };
+    const resultDiv = document.getElementById("guidanceResult");
+
     try {
         const res = await fetch("/api/practical-guidance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
+
         const json = await res.json();
-        document.getElementById("guidanceResult").innerHTML = json.guidance.replace(/\n/g, "<br>");
+
+        if (typeof marked !== 'undefined') {
+            resultDiv.innerHTML = marked.parse(json.guidance);
+        } else {
+            console.warn("marked.js not found, falling back to <br> replace");
+            resultDiv.innerHTML = json.guidance.replace(/\n/g, "<br>");
+        }
+
+        resultDiv.scrollIntoView({ behavior: "smooth" });
+
     } catch (err) {
-        alert("Failed to generate draft.");
+        alert("Failed to generate guidance.");
     } finally {
         hideLoading();
         generateBtn.disabled = false;
     }
+
 });
 
 

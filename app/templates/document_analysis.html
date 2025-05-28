@@ -23,7 +23,14 @@
             </div>
             <div class="col">
                 <label class="form-label">🌍 Jurisdiction</label>
-                <input type="text" class="form-control" name="jurisdiction" placeholder="e.g., Dubai">
+               
+                 <select name="jurisdiction" class="form-select">
+                    <option value="">Select...</option>
+                    <option value="Contract">Dubai Courts</option>
+                    <option value="Judgment">UAE</option>
+                    <option value="License">Abu Dhabi Judicial Dept</option>
+                    <option value="Gov Notice">Federal</option>
+                </select>
             </div>
         </div>
         <button type="submit" class="btn btn-primary mt-3">Analyze Document</button>

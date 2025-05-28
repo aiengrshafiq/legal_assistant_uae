@@ -76,10 +76,13 @@ document.querySelector('#litigationForm').addEventListener('submit', async funct
 
             const data = await res.json();
             document.getElementById('resultContainer').style.display = 'block';
-        //     document.getElementById('analysisOutput').innerHTML = data.analysis
-        // .replace(/^(-\s)?(Case Summary|Case Strength|Arguments For|Arguments Against|Key Risk Factors|Estimated Duration & Cost|Referenced UAE Laws|Final Recommendation):/gm, 
-        //         (match, dash, label) => `<strong>${label}:</strong>`);
-        document.getElementById('analysisOutput').innerHTML = `<pre style="white-space:pre-wrap; font-family:monospace;">${data.analysis}</pre>`;
+       
+            const outputDiv = document.getElementById('analysisOutput');
+            if (typeof marked !== 'undefined') {
+                outputDiv.innerHTML = marked.parse(data.analysis);
+            } else {
+                outputDiv.innerHTML = `<pre style="white-space:pre-wrap; font-family:monospace;">${data.analysis}</pre>`;
+            }
 
             } catch (err) {
                 alert("Failed to generate draft.");
@@ -89,34 +92,38 @@ document.querySelector('#litigationForm').addEventListener('submit', async funct
     });
 </script>
 <style>
-    #analysisOutput strong {
-    display: block;
+#analysisOutput {
+    background: #f9f9f9;
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: 'Roboto', sans-serif;
+}
+
+#analysisOutput h2, 
+#analysisOutput h3 {
     margin-top: 1rem;
+    font-weight: bold;
     color: #333;
 }
 
-</style>
-<style>
+#analysisOutput ul {
+    padding-left: 1.2rem;
+}
+
+#analysisOutput li {
+    margin-bottom: 0.5rem;
+}
+
+#analysisOutput p {
+    margin-bottom: 0.8rem;
+}
+
 #analysisOutput pre {
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  white-space: pre-wrap;
-  font-family: 'Courier New', monospace;
-  font-size: 0.95rem;
+    background: #efefef;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
 }
 </style>
 
-<style>
-    textarea.form-control::placeholder {
-      color: #adb5bd; /* lighter gray */
-      opacity: 1;
-      font-style: italic;
-    }
-    input.form-control::placeholder {
-      color: #adb5bd; /* lighter gray */
-      opacity: 1;
-      font-style: italic;
-    }
-    </style>
 {% endblock %}

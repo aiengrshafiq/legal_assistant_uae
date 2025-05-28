@@ -115,10 +115,12 @@ async function handleSummarize() {
         console.log(data.summary);
         const resultDiv = document.querySelector("#summaryResult");
 
-        if (window.marked) {
+        
+        if (typeof marked !== 'undefined') {
             resultDiv.innerHTML = marked.parse(data.summary);
         } else {
-            resultDiv.innerText = data.summary;
+            console.warn("marked.js not found, falling back to <br> replace");
+            resultDiv.innerHTML = data.summary.replace(/\n/g, "<br>");
         }
         
     } catch (err) {
