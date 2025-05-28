@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="section-card">
+    <h4>👤 User Profile</h4>
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="border rounded p-3 bg-light">
+                <h5 class="text-primary">Account Info</h5>
+                <p><strong>Full Name:</strong> {{ user.username }}</p>
+                <p><strong>Email Address:</strong> {{ user.email }}</p>
+                <p><strong>Joined On:</strong> {{ user.created_at.strftime("%d %B %Y") if user.created_at else "N/A" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-card {
+        background: #fff;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h4, h5 {
+        font-family: 'Roboto', sans-serif;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

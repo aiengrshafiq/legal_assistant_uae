@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="section-card">
+    <h4>📜 Query History</h4>
+    {% if logs %}
+        <div class="table-responsive mt-4">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Module</th>
+                        <th scope="col">Question</th>
+                        <th scope="col">Response</th>
+                        <th scope="col">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ log.module }}</td>
+                        <td>{{ log.question[:100] }}{% if log.question|length > 100 %}...{% endif %}</td>
+                        <td>
+                            <details>
+                                <summary>View</summary>
+                                <pre style="white-space:pre-wrap;">{{ log.response[:1000] }}{% if log.response|length > 1000 %}...{% endif %}</pre>
+                            </details>
+                        </td>
+                        <td>{{ log.timestamp.strftime("%d-%m-%Y %H:%M") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted mt-3">No past queries found.</p>
+    {% endif %}
+</div>
+
+<style>
+.section-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+table td, table th {
+    font-size: 0.9rem;
+    vertical-align: top;
+}
+</style>
+{% endblock %}

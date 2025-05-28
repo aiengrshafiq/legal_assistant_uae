@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="section-card">
+    <h3 class="mb-4">📖 UAE Legal Advisor – User Guide</h3>
+
+    {% set modules = [
+        ("AI Assistant", "Ask legal questions in English or Arabic and receive concise answers backed by UAE laws, including summaries, legal analysis, and citations."),
+        ("Summarize a Case", "Upload a legal document (PDF/DOCX) and receive a professionally structured summary covering facts, legal basis, and judgment."),
+        ("Generate a Draft", "Generate legal documents like notices or complaints. Upload related files and customize recipient and issue to get a ready-to-use draft."),
+        ("Legal Research", "Get an in-depth report on any topic. Enter jurisdiction, topic, and optional question or document to receive articles, laws, and legal opinion."),
+        ("Practical Guidance", "Get step-by-step legal advice for specific issues. Based on your role, urgency, and details, the AI guides you with procedures and legal bodies."),
+        ("Litigation Analysis", "Enter your case details and get a risk assessment, legal argument breakdown, and recommended strategy before going to court."),
+        ("Document Analysis", "Upload any legal document (contract, license, judgment). Get AI-powered clause breakdowns, risk flags, compliance issues, and legal references.")
+    ] %}
+
+    {% for name, description in modules %}
+        <div class="mb-4">
+            <h5 class="text-primary">✅ {{ loop.index }}. {{ name }}</h5>
+            <p>{{ description }}</p>
+        </div>
+    {% endfor %}
+
+    <div class="alert alert-secondary mt-4">
+        📧 For further assistance, please contact <strong>it@metamorphic.ae</strong>.
+    </div>
+</div>
+
+<style>
+.section-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.section-card h5 {
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}

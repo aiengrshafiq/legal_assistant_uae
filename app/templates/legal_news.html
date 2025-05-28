@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="section-card">
+  <h4>📰 Legal News Hub</h4>
+  <div id="newsContainer" class="mt-3">
+    <div class="text-muted">Loading latest legal news...</div>
+  </div>
+</div>
+
+<style>
+  #newsContainer {
+    font-family: 'Roboto', sans-serif;
+  }
+  .news-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+  }
+  .news-item h5 {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+  .news-item p {
+    margin-bottom: 0.5rem;
+  }
+  .news-item a {
+    text-decoration: none;
+    color: #007bff;
+  }
+  .news-item a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const container = document.getElementById("newsContainer");
+    try {
+      const res = await fetch("/api/legal-news");
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        container.innerHTML = "<p>No legal news available at the moment.</p>";
+        return;
+      }
+      container.innerHTML = "";
+      data.forEach(article => {
+        const item = document.createElement("div");
+        item.className = "news-item";
+        item.innerHTML = `
+          <h5>${article.title}</h5>
+          <p>${article.summary}</p>
+          <a href="${article.url}" target="_blank">Read more</a>
+        `;
+        container.appendChild(item);
+      });
+    } catch (err) {
+      container.innerHTML = "<p class='text-danger'>Failed to load legal news. Please try again later.</p>";
+      console.error("Error loading legal news:", err);
+    }
+  });
+</script>
+{% endblock %}
