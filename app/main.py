@@ -2,11 +2,11 @@ from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from app.routes import query, draft, summarize, base, auth, legal_news, profile, history, help
+from app.routes import query, draft, summarize, base, auth, legal_news, profile, history,help
 
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import legal_research
-from app.routes import practical_guidance,litigation_analysis,document_analysis
+from app.routes import practical_guidance,litigation_analysis,document_analysis,case_intelligence
 
 
 from fastapi.responses import RedirectResponse
@@ -40,6 +40,7 @@ app.include_router(legal_news.router)
 app.include_router(profile.router)
 app.include_router(history.router)
 app.include_router(help.router)
+app.include_router(case_intelligence.router)
 
 
 

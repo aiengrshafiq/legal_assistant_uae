@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Timeline Section -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-info text-white">
+      <h4 class="mb-0">📜 Chronological Legal Timeline</h4>
+    </div>
+    <div class="card-body">
+      {% for doc in timeline %}
+      <div class="mb-3">
+       
+        <h6 class="fw-bold text-primary">
+        {{ doc.date.strftime('%d %B %Y') if doc.date else 'Undated' }} — {{ doc.type|capitalize }}
+        </h6>
+        <p class="text-muted">{{ doc.summary }}</p>
+        <hr>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Case Status Section -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-warning">
+      <h4 class="mb-0">🧾 Current Case Status</h4>
+    </div>
+    <div class="card-body">
+      <p class="text-dark">{{ status }}</p>
+    </div>
+  </div>
+
+  <!-- Next Steps Section -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-success text-white">
+      <h4 class="mb-0">🔍 Recommended Next Steps</h4>
+    </div>
+    <div class="card-body">
+      <p>{{ next_steps }}</p>
+    </div>
+  </div>
+
+  <!-- Execution Plan Section -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-secondary text-white">
+      <h4 class="mb-0">🗂 Execution Plan</h4>
+    </div>
+    <div class="card-body">
+      <p>{{ plan }}</p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

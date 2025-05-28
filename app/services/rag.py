@@ -85,3 +85,39 @@ def needs_clarification(question: str):
         return f"❌ Please clarify the following before proceeding: {', '.join(missing)}."
     return None
 
+def get_rag_response(user_input: str, tags: List[str] = None, max_tokens: int = 3000) -> str:
+    lang = detect_language(user_input)
+    relevant_docs = search_qdrant(user_input, lang=lang)
+
+    # Filter by tags if available in Qdrant payload
+    if tags:
+        filtered = []
+        for doc in relevant_docs:
+            doc_tags = doc.metadata.get("tags", [])
+            if isinstance(doc_tags, str):
+                doc_tags = [doc_tags]
+            if any(tag in doc_tags for tag in tags):
+                filtered.append(doc)
+        relevant_docs = filtered or relevant_docs  # Fallback if nothing matches
+
+    # Compress if too long
+    context = compress_chunks_if_needed(relevant_docs, max_tokens=max_tokens)
+
+    prompt_templates = {
+        "timeline-summary": "Summarize this legal document as a timeline event:\n\n{context}",
+        "case-status-inference": "Given the following history of legal documents and summaries, infer the current legal status:\n\n{context}",
+        "legal-next-steps": "Based on this timeline and legal context, suggest the next step according to UAE laws:\n\n{context}",
+        "execution-plan": "Create a step-by-step legal execution plan including required documents and UAE law citations:\n\n{context}"
+    }
+
+    # Choose prompt
+    tag_key = tags[0] if tags else "timeline-summary"
+    prompt = prompt_templates.get(tag_key, "Answer the following legal query:\n\n{context}").format(context=context)
+
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
+
+

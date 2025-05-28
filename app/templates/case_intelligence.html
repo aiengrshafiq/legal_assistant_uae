@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow rounded-3">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">📂 Upload Full Case Package</h4>
+    </div>
+    <div class="card-body">
+      <form id="caseUploadForm" action="/case-intelligence/process" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+          <label for="fileUpload" class="form-label fw-bold">Select multiple case-related documents (PDF, DOCX):</label>
+          <input class="form-control" type="file" id="fileUpload" name="files" accept=".pdf,.docx" multiple required>
+          <div class="form-text text-muted">
+            Hold <kbd>Ctrl</kbd> (or <kbd>Cmd</kbd>) to select multiple documents.
+          </div>
+        </div>
+        <button type="submit" id="analyzeBtn" class="btn btn-success w-100 mt-3">
+          🔍 Analyze Case
+        </button>
+        <div id="processingIndicator" class="text-center mt-3" style="display: none;">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 fw-semibold">Analyzing case package, please wait...</p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('caseUploadForm').addEventListener('submit', function () {
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const processing = document.getElementById('processingIndicator');
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = 'Processing...';
+    processing.style.display = 'block';
+  });
+</script>
+{% endblock %}
