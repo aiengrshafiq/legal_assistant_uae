@@ -1,15 +1,22 @@
 from fastapi import APIRouter, Request
 from app.qachain import setup_qa_chain
 from app.models import QueryResponse
+from fastapi import Depends
+from app.auth.models import User
+from app.auth.utils import log_query,decode_token,get_current_user
 #from app.services.rag import needs_clarification
+
 
 router = APIRouter()
 
 @router.post("/api/query", response_model=QueryResponse)
-async def handle_query(request: Request):
+async def ask_route(request: Request, user: User = Depends(get_current_user)):
     data = await request.json()
     question = data.get("question")
     result = ask_question(question)
+   
+    log_query(user.email, user.username, "AI Assistant", question, result.get("short_answer", "") + "\n\n" + result.get("detailed_answer", ""))
+    
     return {
         "short_answer": result.get("short_answer", ""),
         "detailed_answer": result.get("detailed_answer", ""),
@@ -18,14 +25,7 @@ async def handle_query(request: Request):
 
 def ask_question(question: str) -> dict:
     try:
-        # clarification = needs_clarification(question)
-        # if clarification:
-        #     return {
-        #         "short_answer": clarification,
-        #         "detailed_answer": "",
-        #         "sources": []
-        #     }
-
+       
         qa_chain, _ = setup_qa_chain(question)
         if qa_chain is None:
             return {
@@ -65,8 +65,6 @@ def ask_question(question: str) -> dict:
                 "version": metadata.get("version", ""),
                 "source_url": metadata.get("source_url", "")
             })
-
-            
 
         return {
             "short_answer": short_answer,

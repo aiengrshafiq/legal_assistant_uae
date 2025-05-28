@@ -112,7 +112,15 @@ async function handleSummarize() {
     try {
         const res = await fetch("/api/summarize", {method: "POST", body: formData});
         const data = await res.json();
-        document.querySelector("#summaryResult").innerText = data.summary;
+        console.log(data.summary);
+        const resultDiv = document.querySelector("#summaryResult");
+
+        if (window.marked) {
+            resultDiv.innerHTML = marked.parse(data.summary);
+        } else {
+            resultDiv.innerText = data.summary;
+        }
+        
     } catch (err) {
         alert("Failed to summarize case.");
     } finally {

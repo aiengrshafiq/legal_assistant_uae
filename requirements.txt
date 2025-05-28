@@ -11,3 +11,9 @@ reportlab
 python-docx
 langchain_community
 langchain-openai
+
+#AUTH
+passlib[bcrypt]
+python-jose
+sqlalchemy
+psycopg2-binary

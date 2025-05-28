@@ -4,6 +4,9 @@ from fastapi.templating import Jinja2Templates
 from app.services.drafter import generate_legal_draft, generate_pdf_from_text
 from io import BytesIO
 import logging
+from app.auth.utils import log_query, get_current_user
+from fastapi import Depends
+from app.auth.models import User
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -22,8 +25,10 @@ async def draft_file(
     recipient_name: str = Form(""),
     recipient_contact: str = Form(""),
     instructions: str = Form(""),
-    as_pdf: bool = Form(False)
+    as_pdf: bool = Form(False),
+    user: User = Depends(get_current_user)
 ):
+
     try:
         file_bytes = await file.read() if file else None
 
@@ -39,6 +44,15 @@ async def draft_file(
 
         if not draft.strip():
             raise ValueError("Draft is empty")
+
+        #log the action
+        log_query(
+            user_email=user.email,
+            username=user.username,
+            module="Generate Draft",
+            question=f"Draft Type: {draft_type}, Language: {language}, Recipient: {recipient_name}, Instructions: {instructions}",
+            response=draft
+        )
 
         if as_pdf:
             pdf_bytes = generate_pdf_from_text(draft)

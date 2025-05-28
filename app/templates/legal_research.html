@@ -57,7 +57,7 @@
 
 <div class="border rounded p-3 mb-4 bg-light">
   <h5 class="text-primary">🔍 Summary</h5>
-  <p>{{ summary | replace('\\n', '<br>') | safe }}</p>
+  <div id="researchSummary" class="markdown-content">{{ summary }}</div>
 </div>
 {% endif %}
 {% if articles %}
@@ -106,4 +106,50 @@
     document.getElementById("loading").style.display = "block";
   });
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const el = document.getElementById("researchSummary");
+        if (el && window.marked) {
+            const raw = el.textContent || el.innerText;
+            el.innerHTML = marked.parse(raw);
+        }
+    });
+</script>
+<style>
+.markdown-content h3 {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+    font-weight: 600;
+    color: #0056b3;
+}
+
+.markdown-content h4 {
+    font-size: 1.15rem;
+    margin-top: 1.2rem;
+    font-weight: bold;
+    color: #003366;
+}
+
+.markdown-content ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.markdown-content li {
+    margin-bottom: 0.5rem;
+}
+
+.markdown-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.markdown-content {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-family: 'Roboto', sans-serif;
+}
+</style>
+
 {% endblock %}
