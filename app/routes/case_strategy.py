@@ -1,10 +1,11 @@
 # =============================
 # 📦 app/routes/case_strategy.py
 # =============================
-from fastapi import APIRouter, Request, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from app.services import case_strategy
+from app.qachain import ask_question_in_case
 import uuid
 
 router = APIRouter()
@@ -33,3 +34,11 @@ async def process(request: Request, files: list[UploadFile] = File(...)):
         "plan": plan,
         "case_id": case_id
     })
+
+@router.post("/case-strategy/ask", response_class=JSONResponse)
+async def case_qa(case_id: str = Form(...), question: str = Form(...)):
+    try:
+        answer = ask_question_in_case(case_id, question)
+        return {"answer": answer}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})

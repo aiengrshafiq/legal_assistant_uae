@@ -1,4 +1,7 @@
 
+# ================================
+# 📦 app/qachain.py
+# ================================
 from langchain.chains import RetrievalQA
 from langchain.schema import Document as LCDocument
 import os
@@ -16,6 +19,8 @@ from langchain_community.vectorstores import Qdrant
 from langchain_openai import OpenAIEmbeddings
 
 from qdrant_client import QdrantClient
+from langchain_community.vectorstores import Qdrant
+
 from qdrant_client.models import Distance, VectorParams, PointStruct
 import uuid
 
@@ -154,40 +159,59 @@ def call_llm_chain(prompt: str) -> dict:
 
 def store_case_chunks_to_qdrant(text, namespace):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_text(text)
+    raw_chunks = splitter.split_text(text)
 
-    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
-    vectors = [embeddings.embed_query(chunk) for chunk in chunks]
+    # Clean and filter chunks
+    cleaned_chunks = [chunk.strip() for chunk in raw_chunks if chunk.strip()]
+    if not cleaned_chunks:
+        print(f"[WARNING] No valid content to embed for case: {namespace}")
+        return
 
-    
     try:
-        client = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+        embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
+        vectors = [embeddings.embed_query(chunk) for chunk in cleaned_chunks]
+    except Exception as e:
+        print(f"[EMBEDDING ERROR] Failed to generate embeddings: {e}")
+        return
+
+    try:
+        client = QdrantClient(
+            url=f"https://{os.getenv('QDRANT_HOST')}:{os.getenv('QDRANT_PORT')}",
+            api_key=os.getenv("QDRANT_API_KEY")
+        )
+
         if not client.collection_exists(namespace):
             client.create_collection(
                 collection_name=namespace,
                 vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
             )
+
+        points = [
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector=vector,
+                payload={"page_content": chunk} 
+            )
+            for chunk, vector in zip(cleaned_chunks, vectors)
+        ]
+
+        client.upsert(collection_name=namespace, points=points)
+        print(f"[✅] Stored {len(points)} chunks in Qdrant for case: {namespace}")
+
     except Exception as e:
-        print(f"[QDRANT ERROR] Could not connect or create collection '{namespace}': {e}")
-        return
+        print(f"[QDRANT ERROR] Failed to store vectors for case '{namespace}': {e}")
 
-    points = [
-        PointStruct(
-            id=str(uuid.uuid4()),
-            vector=vec,
-            payload={"text": chunk}
-        )
-        for chunk, vec in zip(chunks, vectors)
-    ]
-
-    client.upsert(collection_name=namespace, points=points)
 
 def ask_question_in_case(case_id: str, question: str):
     llm = ChatOpenAI(temperature=0.3, model_name="gpt-4")
+    client = QdrantClient(
+        url=qdrant_url,
+        api_key=os.getenv("QDRANT_API_KEY")
+    )
     retriever = Qdrant(
-        embedding_function=embeddings,
+        client=client,
         collection_name=case_id,
-        url=qdrant_url
+        embeddings=embeddings
     ).as_retriever()
     chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-    return chain.run(question)
+    return chain.invoke(question)
