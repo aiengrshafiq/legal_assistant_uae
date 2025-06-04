@@ -69,3 +69,7 @@ def execution_plan(status, steps):
 def store_case_vectors(docs, case_id):
     for doc in docs:
         store_case_chunks_to_qdrant(doc['content'], namespace=case_id)
+
+
+
+
