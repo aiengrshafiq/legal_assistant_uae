@@ -1,23 +1,25 @@
-# Use official Python image
+# Use official Python slim image
 FROM python:3.10-slim
 
-# Set workdir
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install required system packages
 RUN apt-get update && apt-get install -y \
     build-essential \
     libmagic-dev \
+    poppler-utils \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy files
+# Copy project files
 COPY . .
 
-# Install dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Install Python dependencies
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Expose port
+# Expose FastAPI port
 EXPOSE 8000
 
-# Run the app
+# Run the app with Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
