@@ -1,3 +1,4 @@
+#app\services\case_intelligence.py
 from app.utils import extract_text_from_upload_all
 from datetime import datetime
 import re
@@ -8,17 +9,6 @@ import docx
 import io
 import dateparser
 
-# def extract_date_from_text(text: str):
-#     """
-#     Extracts the first date found in the document using dateparser.
-#     """
-#     # You can fine-tune this based on your expected patterns
-#     lines = text.split("\n")
-#     for line in lines:
-#         parsed = dateparser.parse(line, settings={"PREFER_DATES_FROM": "past"})
-#         if parsed:
-#             return parsed
-#     return None  # No date found
 
 def extract_date_from_text(text: str):
     lines = [l for l in text.split("\n") if any(kw in l.lower() for kw in ['date', 'hearing', 'judgment', 'order', 'filed'])]

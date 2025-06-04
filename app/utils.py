@@ -9,6 +9,13 @@ import docx
 import io
 load_dotenv()
 
+
+
+from pdf2image import convert_from_bytes
+from PIL import Image
+import pytesseract
+
+
 # === OpenAI & Qdrant Configuration ===
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
@@ -111,3 +118,33 @@ def extract_text_from_upload_all(filename, file_bytes):
         return file_bytes.decode("utf-8")
     else:
         raise ValueError("Unsupported file format. Please upload PDF, DOCX, or TXT.")
+
+
+def extract_text_with_ocr(file_bytes, filename):
+    # PDF OCR
+    if filename.lower().endswith('.pdf'):
+        try:
+            images = convert_from_bytes(file_bytes)
+            text = ''
+            for img in images:
+                text += pytesseract.image_to_string(img)
+            return text.strip()
+        except Exception as e:
+            print(f"[OCR ERROR] Failed to OCR PDF {filename}: {e}")
+            return ""
+
+    # DOCX
+    elif filename.lower().endswith('.docx'):
+        try:
+            doc = docx.Document(io.BytesIO(file_bytes))
+            return "\n".join(p.text for p in doc.paragraphs)
+        except Exception as e:
+            print(f"[DOCX ERROR] {filename}: {e}")
+            return ""
+
+    # Fallback: assume plain text
+    else:
+        try:
+            return file_bytes.decode('utf-8', errors='ignore')
+        except Exception:
+            return ""

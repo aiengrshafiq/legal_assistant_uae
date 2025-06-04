@@ -8,6 +8,22 @@ from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_openai import ChatOpenAI
 from app.services.rag import detect_language, search_qdrant, compress_chunks_if_needed, needs_clarification
 
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from dotenv import load_dotenv
+load_dotenv()
+
+from langchain_community.vectorstores import Qdrant
+from langchain_openai import OpenAIEmbeddings
+
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+import uuid
+
+qdrant_url = f"https://{os.getenv('QDRANT_HOST')}:{os.getenv('QDRANT_PORT')}"
+embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+
 TEMPLATE = """
 You are a UAE legal strategist. Analyze the user’s query and provide a step-by-step legal strategy using UAE laws. Do not speculate.
 
@@ -136,3 +152,42 @@ def call_llm_chain(prompt: str) -> dict:
     }
 
 
+def store_case_chunks_to_qdrant(text, namespace):
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    chunks = splitter.split_text(text)
+
+    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
+    vectors = [embeddings.embed_query(chunk) for chunk in chunks]
+
+    
+    try:
+        client = QdrantClient(url=qdrant_url, api_key=os.getenv("QDRANT_API_KEY"))
+        if not client.collection_exists(namespace):
+            client.create_collection(
+                collection_name=namespace,
+                vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+            )
+    except Exception as e:
+        print(f"[QDRANT ERROR] Could not connect or create collection '{namespace}': {e}")
+        return
+
+    points = [
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=vec,
+            payload={"text": chunk}
+        )
+        for chunk, vec in zip(chunks, vectors)
+    ]
+
+    client.upsert(collection_name=namespace, points=points)
+
+def ask_question_in_case(case_id: str, question: str):
+    llm = ChatOpenAI(temperature=0.3, model_name="gpt-4")
+    retriever = Qdrant(
+        embedding_function=embeddings,
+        collection_name=case_id,
+        url=qdrant_url
+    ).as_retriever()
+    chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
+    return chain.run(question)

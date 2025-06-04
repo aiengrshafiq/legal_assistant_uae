@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm rounded-4">
+    <div class="card-header bg-success text-white">
+      <h4 class="mb-0">📊 Case Analysis Result</h4>
+    </div>
+    <div class="card-body">
+      <h5 class="fw-bold text-secondary">🧷 Case Timeline (2023–2025)</h5>
+      <ul class="list-group mb-4">
+        {% for item in timeline %}
+        <li class="list-group-item">
+          <strong>{{ item.date.strftime('%Y-%m-%d') if item.date else 'Unknown Date' }}</strong> — <em>{{ item.type }}</em><br>
+          {{ item.summary }}
+        </li>
+        {% endfor %}
+      </ul>
+
+      <h5 class="fw-bold text-secondary">📌 Current Status</h5>
+      <div class="alert alert-info">{{ status }}</div>
+
+      <h5 class="fw-bold text-secondary">🛠️ Recommended Next Steps</h5>
+      <div class="alert alert-warning">{{ next_steps }}</div>
+
+      <h5 class="fw-bold text-secondary">📑 Execution Plan</h5>
+      <div class="alert alert-success">{{ plan }}</div>
+
+      <h5 class="fw-bold text-secondary mt-4">💬 Ask a Question About This Case</h5>
+      <form action="/case-strategy/ask" method="post" class="d-flex gap-2">
+        <input type="hidden" name="case_id" value="{{ case_id }}">
+        <input type="text" name="question" class="form-control" placeholder="Type your question..." required>
+        <button type="submit" class="btn btn-outline-primary">Ask</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

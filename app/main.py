@@ -6,7 +6,7 @@ from app.routes import query, draft, summarize, base, auth, legal_news, profile,
 
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import legal_research
-from app.routes import practical_guidance,litigation_analysis,document_analysis,case_intelligence
+from app.routes import practical_guidance,litigation_analysis,document_analysis,case_intelligence, case_strategy
 
 
 from fastapi.responses import RedirectResponse
@@ -41,6 +41,7 @@ app.include_router(profile.router)
 app.include_router(history.router)
 app.include_router(help.router)
 app.include_router(case_intelligence.router)
+app.include_router(case_strategy.router)
 
 
 
