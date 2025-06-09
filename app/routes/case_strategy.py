@@ -4,37 +4,43 @@
 from fastapi import APIRouter, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from app.services import case_strategy
-from app.qachain import ask_question_in_case
-import uuid
+from uuid import uuid4
+from celery.result import AsyncResult
 
-router = APIRouter()
+from app.tasks.case_strategy_tasks import process_case_package
+from app.qachain import ask_question_in_case      # unchanged
+
+router    = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+# ─────────────────────────────────────────────────────────── UI start page
 @router.get("/case-strategy", response_class=HTMLResponse)
 async def form(request: Request):
     return templates.TemplateResponse("case_strategy.html", {"request": request})
 
-@router.post("/case-strategy/process", response_class=HTMLResponse)
-async def process(request: Request, files: list[UploadFile] = File(...)):
-    case_id = f"case_{uuid.uuid4().hex}"
-    docs = case_strategy.parse_documents(files)
-    classified = case_strategy.classify_documents(docs)
-    timeline = case_strategy.summarize_timeline(classified)
-    status = case_strategy.infer_status(timeline)
-    steps = case_strategy.recommend_steps(timeline)
-    plan = case_strategy.execution_plan(status, steps)
-    case_strategy.store_case_vectors(classified, case_id)
+# ─────────────────────────────────────────────────────────── fire-and-forget
+@router.post("/case-strategy/process", response_class=JSONResponse, status_code=202)
+async def process_case(files: list[UploadFile] = File(...)):
+    case_id = f"case_{uuid4().hex}"
 
-    return templates.TemplateResponse("case_strategy_result.html", {
-        "request": request,
-        "timeline": timeline,
-        "status": status,
-        "next_steps": steps,
-        "plan": plan,
-        "case_id": case_id
-    })
+    # read uploads into memory once; Celery serialises the dict
+    payload = [{
+        "filename": f.filename,
+        "content":  await f.read()
+    } for f in files]
 
+    task = process_case_package.delay(case_id, payload)   # → Redis queue
+    return {"case_id": case_id, "task_id": task.id}
+
+# ─────────────────────────────────────────────────────────── poll endpoint
+@router.get("/case-strategy/result/{task_id}", response_class=JSONResponse)
+async def get_result(task_id: str):
+    task = AsyncResult(task_id)
+    if task.successful():
+        return task.result
+    return {"state": task.state}          # PENDING / STARTED / RETRY / FAILURE
+
+# ─────────────────────────────────────────────────────────── QA unchanged
 @router.post("/case-strategy/ask", response_class=JSONResponse)
 async def case_qa(case_id: str = Form(...), question: str = Form(...)):
     try:
@@ -42,3 +48,12 @@ async def case_qa(case_id: str = Form(...), question: str = Form(...)):
         return {"answer": answer}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@router.get("/case-strategy/result-page.html", response_class=HTMLResponse)
+async def result_page(request: Request):
+    """
+    Renders the final results view.  Data are injected on the client side
+    from sessionStorage (see JavaScript in case_strategy.html).
+    """
+    return templates.TemplateResponse("result-page.html", {"request": request})

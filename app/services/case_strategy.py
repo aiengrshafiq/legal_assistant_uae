@@ -71,5 +71,20 @@ def store_case_vectors(docs, case_id):
         store_case_chunks_to_qdrant(doc['content'], namespace=case_id)
 
 
-
+# NEW helper for Celery (bytes instead of UploadFile)
+def parse_documents_from_bytes(files):
+    """
+    files = [{"filename": str, "content": bytes}, …]
+    """
+    parsed_docs = []
+    for item in files:
+        content = extract_text_with_ocr(item["content"], item["filename"])
+        date    = extract_date(content)
+        parsed_docs.append({
+            "filename": item["filename"],
+            "content":  content,
+            "date":     date,
+            "type":     "unclassified",
+        })
+    return parsed_docs
 

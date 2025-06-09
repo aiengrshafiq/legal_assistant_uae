@@ -25,10 +25,27 @@
 </div>
 
 <script>
-  document.getElementById('caseUploadForm').addEventListener('submit', function () {
-    document.getElementById('analyzeBtn').disabled = true;
-    document.getElementById('analyzeBtn').innerText = 'Processing...';
-    document.getElementById('processingIndicator').style.display = 'block';
-  });
+document.getElementById('caseUploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn  = document.getElementById('analyzeBtn');
+  const indi = document.getElementById('processingIndicator');
+  btn.disabled = true; btn.innerText = 'Uploading…'; indi.style.display = 'block';
+
+  const fd = new FormData(e.target);
+  const r  = await fetch('/case-strategy/process', {method:'POST', body:fd});
+  const {task_id, case_id} = await r.json();
+
+  // poll every 2 s until Celery is done
+  async function poll() {
+    const res   = await fetch(`/case-strategy/result/${task_id}`);
+    const json  = await res.json();
+    if (json.state) { setTimeout(poll, 2000); return; }   // not ready
+    // redirect to result page with data stuffed into session-storage
+    sessionStorage.setItem('caseResult', JSON.stringify(json));
+    window.location = `/case-strategy/result-page.html`;
+  }
+  poll();
+});
 </script>
+
 {% endblock %}

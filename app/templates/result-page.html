@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block content %}
+<script>
+  /* pull the dict we stashed in sessionStorage */
+  const data = JSON.parse(sessionStorage.getItem('caseResult') || '{}');
+  if (!data.case_id) {                // safeguard: if someone opens the
+    window.location = "/case-strategy";   // page directly, bounce back
+  }
+</script>
+
+<div class="container mt-4" id="render"></div>
+
+<script id="tmpl" type="text/x-template">
+  <div class="card shadow-sm rounded-4">
+    <div class="card-header bg-success text-white">
+      <h4 class="mb-0">📊 Case Analysis Result</h4>
+    </div>
+    <div class="card-body">
+      <!-- ───────────── TIME-LINE / STATUS / PLAN ───────────── -->
+      <h5 class="fw-bold text-secondary">🧷 Case Timeline </h5>
+      <ul class="list-group mb-4">
+      <% timeline.forEach(item => { %>
+        <li class="list-group-item">
+          <strong><%= item.date ? new Date(item.date).toISOString().split('T')[0] : 'Unknown' %></strong>
+          — <em><%= item.type %></em><br><%= item.summary %>
+        </li>
+      <% }) %>
+      </ul>
+      <h5 class="fw-bold text-secondary">📌 Current Status</h5>
+      <div class="alert alert-info"><%= status %></div>
+
+      <h5 class="fw-bold text-secondary">🛠️ Recommended Next Steps</h5>
+      <div class="alert alert-warning"><%= next_steps %></div>
+
+      <h5 class="fw-bold text-secondary">📑 Execution Plan</h5>
+      <div class="alert alert-success"><%= plan %></div>
+
+      <!-- ───────────── REAL-TIME Q-AND-A ───────────── -->
+      <h5 class="fw-bold text-secondary mt-4">💬 Ask a Question About This Case</h5>
+
+      <div class="border rounded p-3" style="background-color:#f8f9fa; min-height:280px;" id="chatbox"></div>
+
+      <form id="qaForm" class="d-flex gap-2 mt-3">
+        <input type="hidden" id="case_id" value="<%= case_id %>">
+        <input type="text" id="question" class="form-control" placeholder="Type your question…" required>
+        <button class="btn btn-outline-primary" type="submit">Ask</button>
+      </form>
+    </div>
+  </div>
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/underscore@1.13.7/underscore-umd-min.js"></script>
+<script>
+  /* ---------- render the static part ---------- */
+  document.getElementById('render').innerHTML =
+    _.template(document.getElementById('tmpl').innerHTML)(data);
+
+  /* ---------- live Q-and-A logic ---------- */
+  const qaForm   = document.getElementById('qaForm');
+  const questionInput = document.getElementById('question');
+  const chatbox  = document.getElementById('chatbox');
+  const caseId   = document.getElementById('case_id').value;
+
+  qaForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = questionInput.value.trim();
+    if (!q) return;
+
+    /* append user message */
+    chatbox.insertAdjacentHTML('beforeend', `
+      <div class="text-end mb-2">
+        <span class="badge bg-primary">You</span>
+        <div class="mt-1">${q}</div>
+      </div>`);
+
+    /* show spinner */
+    const loaderId = `ldr-${Date.now()}`;
+    chatbox.insertAdjacentHTML('beforeend', `
+      <div id="${loaderId}" class="text-start mb-2">
+        <span class="badge bg-secondary">AI</span>
+        <div class="mt-1 text-muted">Thinking…</div>
+      </div>`);
+
+    questionInput.value = '';
+
+    try {
+      const fd = new FormData();
+      fd.append('case_id', caseId);
+      fd.append('question', q);
+
+      const resp   = await fetch('/case-strategy/ask', {method:'POST', body:fd});
+      const result = await resp.json();
+      const answer = result.answer?.result || result.answer || result.error || '⚠️ Error';
+
+      document.getElementById(loaderId).innerHTML = `
+        <span class="badge bg-secondary">AI</span>
+        <div class="mt-1">${String(answer).replace(/\n/g,'<br>')}</div>`;
+    } catch (err) {
+      document.getElementById(loaderId).innerHTML = `
+        <span class="badge bg-secondary">AI</span>
+        <div class="mt-1 text-danger">❌ Could not get response.</div>`;
+    }
+  });
+</script>
+{% endblock %}

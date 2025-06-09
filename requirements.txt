@@ -21,3 +21,6 @@ dateparser
 
 pytesseract 
 pdf2image
+
+celery[redis]==5.3.6
+redis==5.0.4
