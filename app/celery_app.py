@@ -18,6 +18,9 @@ def _maybe_downgrade(url: str | None) -> str | None:
 broker_url  = _maybe_downgrade(os.getenv("CELERY_BROKER_URL"))
 backend_url = _maybe_downgrade(os.getenv("CELERY_RESULT_BACKEND"))
 
+print(f"Using broker: {broker_url}")
+print(f"Using backend: {backend_url}")
+
 ssl_opts = (
     {"ssl_cert_reqs": ssl.CERT_NONE}
     if broker_url and broker_url.startswith("rediss://")
