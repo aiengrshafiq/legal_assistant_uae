@@ -37,7 +37,7 @@ COPY . /app
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 80                       # keep 80 for both roles
+EXPOSE 80
 COPY docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
