@@ -22,5 +22,9 @@ dateparser
 pytesseract 
 pdf2image
 
+# Task Queue
 celery[redis]==5.3.6
 redis==5.0.4
+
+# Blob Storage
+azure-storage-blob==12.19.1

@@ -6,9 +6,11 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 COPY . /app
+
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# expose one port for both roles
-EXPOSE 80
 COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 80
 ENTRYPOINT ["/entrypoint.sh"]
